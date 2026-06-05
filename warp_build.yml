@@ -8,7 +8,7 @@ dependencies:
   - libtiff
   - python=3.12
   - pytorch=2.5.1=gpu_cuda124*
-  - fftw
+  - conda-forge::fftw=*=*openmp*
   - cmake<4
   - cxx-compiler=1.3
   - dotnet=10.0
