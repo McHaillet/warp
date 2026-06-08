@@ -2,7 +2,7 @@ Bootstrap: docker
 From: mcr.microsoft.com/dotnet/sdk:10.0
 
 # Expects environment.yml (the corrected conda-forge one, name: warp_build)
-# to be in the same directory when you run `singularity build`.
+# to be in the same directory when you run the build.
 %files
     environment.yml /opt/environment.yml
 
@@ -10,7 +10,9 @@ From: mcr.microsoft.com/dotnet/sdk:10.0
     set -eu
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
-    apt-get install -y --no-install-recommends wget git ca-certificates bzip2
+    # make is required by cmake's "Unix Makefiles" generator; it is not in the
+    # base image or the conda env.
+    apt-get install -y --no-install-recommends wget git ca-certificates bzip2 make
     rm -rf /var/lib/apt/lists/*
 
     # Miniforge installs with conda-forge as the default channel
@@ -28,14 +30,12 @@ From: mcr.microsoft.com/dotnet/sdk:10.0
     conda env create -f /opt/environment.yml
     conda clean -ya
 
+# Kept dash-safe: do NOT run `conda activate` here. Singularity sources this
+# with /bin/sh (dash), which cannot parse conda's bash compiler-activation
+# scripts. Activate the env under bash at runtime instead (see usage below).
 %environment
-    . /opt/conda/etc/profile.d/conda.sh
-    conda activate warp_build
-    # dotnet from the base image (.NET 10 SDK) stays on PATH after activation
+    export PATH=/opt/conda/bin:$PATH
     export DOTNET_CLI_TELEMETRY_OPTOUT=1
-    # conda-forge CUDA split layout (same as on the host) for the native build
-    export CUDA_HOME="${CONDA_PREFIX}"
-    export CPATH="${CONDA_PREFIX}/targets/x86_64-linux/include:${CPATH:-}"
 
 %runscript
     exec "$@"
