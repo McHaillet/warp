@@ -14,4 +14,4 @@ dependencies:
   - cuda-toolkit=12.4            # replaces nvcc + cudart-dev + libcufft/cublas/curand-dev + nvrtc-dev
   - cuda-cccl                    # Thrust/CUB headers torch's CUDA build pulls in
   - cuda-cudart-static           # kept explicit; the metapackage may omit the static lib
-  - dotnet=6.0                # NOT CentOS 7 compatible (needs glibc 2.28 / RHEL 8+) — see note
+  - dotnet=10.0                # NOT CentOS 7 compatible (needs glibc 2.28 / RHEL 8+) — see note
