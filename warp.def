@@ -1,0 +1,41 @@
+Bootstrap: docker
+From: mcr.microsoft.com/dotnet/sdk:10.0
+
+# Expects environment.yml (the corrected conda-forge one, name: warp_build)
+# to be in the same directory when you run `singularity build`.
+%files
+    environment.yml /opt/environment.yml
+
+%post
+    set -eu
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends wget git ca-certificates bzip2
+    rm -rf /var/lib/apt/lists/*
+
+    # Miniforge installs with conda-forge as the default channel
+    wget -q https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O /tmp/miniforge.sh
+    bash /tmp/miniforge.sh -b -p /opt/conda
+    rm /tmp/miniforge.sh
+
+    . /opt/conda/etc/profile.d/conda.sh
+    conda config --set channel_priority strict
+    # No GPU is present at build time, so conda can't detect the __cuda virtual
+    # package and refuses the CUDA pytorch build. Override it to the cluster's
+    # CUDA version so the correct GPU build is selected; the real GPU is present
+    # at runtime via --nv.
+    export CONDA_OVERRIDE_CUDA="12.4"
+    conda env create -f /opt/environment.yml
+    conda clean -ya
+
+%environment
+    . /opt/conda/etc/profile.d/conda.sh
+    conda activate warp_build
+    # dotnet from the base image (.NET 10 SDK) stays on PATH after activation
+    export DOTNET_CLI_TELEMETRY_OPTOUT=1
+    # conda-forge CUDA split layout (same as on the host) for the native build
+    export CUDA_HOME="${CONDA_PREFIX}"
+    export CPATH="${CONDA_PREFIX}/targets/x86_64-linux/include:${CPATH:-}"
+
+%runscript
+    exec "$@"
